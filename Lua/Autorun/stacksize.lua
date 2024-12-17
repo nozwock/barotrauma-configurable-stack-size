@@ -61,7 +61,12 @@ end
 -- Arbitrary max limit is (6 bits, i.e. 2 ^ 6 - 1) = 63
 -- Likely there due to network syncing.
 -- https://github.com/FakeFishGames/Barotrauma/blob/0e8fb6569d2810e2f8ad5fb17b4bba546cc5739a/Barotrauma/BarotraumaShared/SharedSource/Items/Inventory.cs#L13
--- Picking up an even number before 63, as max
+--
+-- Picking up an even number before 63, as max.
+--
+-- Not increasing stack size above 63 despite it being possible,
+-- as it'd either impact network performance or not work outright
+-- without some heavy changes to both server and client code.
 local MAX_STACK_SIZE = 62
 
 for prefab in ItemPrefab.Prefabs do
