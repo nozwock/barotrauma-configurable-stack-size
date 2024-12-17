@@ -73,16 +73,9 @@ for prefab in ItemPrefab.Prefabs do
 		prefab.set_MaxStackSize(stacksize)
 		prefab.set_MaxStackSizeCharacterInventory(math.ceil(prefab.MaxStackSizeCharacterInventory * 2))
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(stacksize)
-	elseif
-		iterContainsAny(prefab.Tags, { "smallitem" })
-		and not iterContainsAny(prefab.Tags, { "weapon", "tool", "scooter", "geneticdevice", "diving", "sonar" })
-		and not iterContains(values({ "captainspipe", "handheldterminal" }), prefab.Identifier)
-		and not findAny(tostring(prefab.Identifier), { "idcard" })
-	then
-		-- Every small item except the select few should've max stack everywhere,
-		-- mostly excluding those that shouldn't stack at all in the first place
-		-- todo: Instead of doing exclusion like this, just get the MaxStackSize for the small item
-		-- and only modify it's stack size if it doesn't have MaxStackSize set to 1
+	elseif iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1 then
+		-- Every small item should've max stack everywhere, excluding
+		-- those that shouldn't stack at all in the first place
 		prefab.set_MaxStackSize(stacksize)
 		prefab.set_MaxStackSizeCharacterInventory(stacksize)
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(stacksize)
