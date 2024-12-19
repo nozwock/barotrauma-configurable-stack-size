@@ -70,14 +70,25 @@ end
 local MAX_STACK_SIZE = 62
 
 for prefab in ItemPrefab.Prefabs do
-	if iterContainsAny(prefab.Tags, { "oxygensource", "weldingfuel" }) then
+	if
+		iterContainsAny(prefab.Tags, {
+			"oxygensource",
+			"weldingfuel",
+			-- For wrench and screwdriver
+			"simpletool",
+			"multitool",
+		})
+	then
 		-- Don't change the player inventory stack size for these items
 		prefab.set_MaxStackSize(MAX_STACK_SIZE)
+		prefab.set_MaxStackSizeCharacterInventory(math.abs(prefab.MaxStackSizeCharacterInventory))
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(MAX_STACK_SIZE) -- WearableInventory applies to Toolbelts/Backpacks
 	elseif iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo" }) then
 		-- Only double the item's stack size in player inventory, and max verywhere else
 		prefab.set_MaxStackSize(MAX_STACK_SIZE)
-		prefab.set_MaxStackSizeCharacterInventory(math.ceil(prefab.MaxStackSizeCharacterInventory * 2))
+		prefab.set_MaxStackSizeCharacterInventory(
+			math.min(MAX_STACK_SIZE, math.abs(prefab.MaxStackSizeCharacterInventory) * 2)
+		)
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(MAX_STACK_SIZE)
 	elseif iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1 then
 		-- Every small item should've max stack everywhere, excluding
