@@ -58,6 +58,18 @@ local function iterContainsAny(iter, list)
 	return false
 end
 
+local function debugItemStackSize(prefab)
+	print(
+		string.format(
+			"%s (max:%d, hotbar:%d, container:%d)",
+			tostring(prefab.Identifier),
+			prefab.MaxStackSize,
+			prefab.MaxStackSizeCharacterInventory,
+			prefab.MaxStackSizeHoldableOrWearableInventory
+		)
+	)
+end
+
 -- Arbitrary max limit is (6 bits, i.e. 2 ^ 6 - 1) = 63
 -- Likely there due to network syncing.
 -- https://github.com/FakeFishGames/Barotrauma/blob/0e8fb6569d2810e2f8ad5fb17b4bba546cc5739a/Barotrauma/BarotraumaShared/SharedSource/Items/Inventory.cs#L13
@@ -67,7 +79,16 @@ end
 -- Not increasing stack size above 63 despite it being possible,
 -- as it'd either impact network performance or not work outright
 -- without some heavy changes to both server and client code.
-local MAX_STACK_SIZE = 62
+local maxStackSize = 62
+local holdableContainerCapacity = 32 -- from observation only, not checked
+local characterInventoryCapacity = holdableContainerCapacity
+
+-- todo: Modify MaxStackSize of containers too.
+-- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container
+
+-- note: By default, some items may have their MaxStackSizeCharacterInventory and/or MaxStackSizeHoldableOrWearableInventory
+-- set to -1, which means that MaxStackSizeCharacterInventory will use the value of MaxStackSize and MaxStackSizeHoldableOrWearableInventory
+-- will use the value of MaxStackSizeCharacterInventory
 
 for prefab in ItemPrefab.Prefabs do
 	if
@@ -80,21 +101,21 @@ for prefab in ItemPrefab.Prefabs do
 		})
 	then
 		-- Don't change the player inventory stack size for these items
-		prefab.set_MaxStackSize(MAX_STACK_SIZE)
+		prefab.set_MaxStackSize(maxStackSize)
 		prefab.set_MaxStackSizeCharacterInventory(math.abs(prefab.MaxStackSizeCharacterInventory))
-		prefab.set_MaxStackSizeHoldableOrWearableInventory(MAX_STACK_SIZE) -- WearableInventory applies to Toolbelts/Backpacks
+		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize) -- WearableInventory applies to Toolbelts/Backpacks
 	elseif iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo" }) then
 		-- Only double the item's stack size in player inventory, and max verywhere else
-		prefab.set_MaxStackSize(MAX_STACK_SIZE)
+		prefab.set_MaxStackSize(maxStackSize)
 		prefab.set_MaxStackSizeCharacterInventory(
-			math.min(MAX_STACK_SIZE, math.abs(prefab.MaxStackSizeCharacterInventory) * 2)
+			math.min(characterInventoryCapacity, math.abs(prefab.MaxStackSizeCharacterInventory) * 2)
 		)
-		prefab.set_MaxStackSizeHoldableOrWearableInventory(MAX_STACK_SIZE)
+		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize)
 	elseif iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1 then
 		-- Every small item should've max stack everywhere, excluding
 		-- those that shouldn't stack at all in the first place
-		prefab.set_MaxStackSize(MAX_STACK_SIZE)
-		prefab.set_MaxStackSizeCharacterInventory(MAX_STACK_SIZE)
-		prefab.set_MaxStackSizeHoldableOrWearableInventory(MAX_STACK_SIZE)
+		prefab.set_MaxStackSize(maxStackSize)
+		prefab.set_MaxStackSizeCharacterInventory(characterInventoryCapacity)
+		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize)
 	end
 end
