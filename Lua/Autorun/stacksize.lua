@@ -81,6 +81,7 @@ end
 -- without some heavy changes to both server and client code.
 local maxStackSize = 62
 local holdableContainerCapacity = 32 -- from observation only, not checked
+local weaponAmmoCapacityFactor = 2
 local characterInventoryCapacity = holdableContainerCapacity
 
 -- todo: Modify MaxStackSize of containers too.
@@ -104,13 +105,21 @@ for prefab in ItemPrefab.Prefabs do
 		prefab.set_MaxStackSize(maxStackSize)
 		prefab.set_MaxStackSizeCharacterInventory(math.abs(prefab.MaxStackSizeCharacterInventory))
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize) -- WearableInventory applies to Toolbelts/Backpacks
-	elseif iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo" }) then
-		-- Only double the item's stack size in player inventory, and max verywhere else
-		prefab.set_MaxStackSize(maxStackSize)
-		prefab.set_MaxStackSizeCharacterInventory(
-			math.min(characterInventoryCapacity, math.abs(prefab.MaxStackSizeCharacterInventory) * 2)
-		)
-		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize)
+	-- elseif
+	-- 	iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo", "smgammo", "handcannonammo" })
+	-- then
+	-- 	-- Only double the item's stack size in player inventory, and max verywhere else
+	-- 	debugItemStackSize(prefab)
+	-- 	prefab.set_MaxStackSize(maxStackSize)
+	-- 	-- fix: ItemPrefab changes persist, so this multiplication keeps happening on each game load until
+	-- 	-- the stack size is 32
+	-- 	prefab.set_MaxStackSizeCharacterInventory(
+	-- 		math.min(
+	-- 			characterInventoryCapacity,
+	-- 			math.abs(prefab.MaxStackSizeCharacterInventory) * weaponAmmoCapacityFactor
+	-- 		)
+	-- 	)
+	-- 	prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize)
 	elseif iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1 then
 		-- Every small item should've max stack everywhere, excluding
 		-- those that shouldn't stack at all in the first place
