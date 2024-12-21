@@ -99,7 +99,7 @@ for prefab in ItemPrefab.Prefabs do
 			-- For wrench and screwdriver
 			"simpletool",
 			"multitool",
-		})
+		}) or iterContains(values({ "bikehorn", "toyhammer" }), tostring(prefab.Identifier))
 	then
 		-- Don't change the player inventory stack size for these items
 		prefab.set_MaxStackSize(maxStackSize)
