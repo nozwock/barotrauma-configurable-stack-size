@@ -132,9 +132,8 @@ Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 			instance.maxStackSize = crateCapacity
 		elseif string.match(tags, "container") then
 			instance.maxStackSize = stationaryContainerCapacity
-		else
-			instance.maxStackSize = maxStackSize
 		end
+		-- Don't catch all here using else, as that would include even container slots of weapons, which is used to hold ammo
 	end
 end, Hook.HookMethodType.After)
 
