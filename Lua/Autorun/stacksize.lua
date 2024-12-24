@@ -70,6 +70,35 @@ local function debugItemStackSize(prefab)
 	)
 end
 
+local PrefabRollback = {}
+function PrefabRollback.storeStackSizeState(self, item_prefab)
+	if not self.items then
+		---@type table<string, StackSizeState>
+		self.items = {}
+	end
+
+	---@class StackSizeState
+	local state = {
+		MaxStackSize = item_prefab.MaxStackSize,
+		MaxStackSizeCharacterInventory = item_prefab.MaxStackSizeCharacterInventory,
+		MaxStackSizeHoldableOrWearableInventory = item_prefab.MaxStackSizeHoldableOrWearableInventory,
+	}
+
+	self.items[item_prefab.Identifier] = state
+end
+function PrefabRollback.rollbackStackSizeStates(self)
+	if not self.items then
+		return
+	end
+
+	for id, state in pairs(self.items) do
+		local item_prefab = ItemPrefab.GetItemPrefab(id)
+		item_prefab.set_MaxStackSize(state.MaxStackSize)
+		item_prefab.set_MaxStackSizeCharacterInventory(state.MaxStackSizeCharacterInventory)
+		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state.MaxStackSizeHoldableOrWearableInventory)
+	end
+end
+
 -- Arbitrary max limit is (6 bits, i.e. 2 ^ 6 - 1) = 63
 -- Likely there due to network syncing.
 -- https://github.com/FakeFishGames/Barotrauma/blob/0e8fb6569d2810e2f8ad5fb17b4bba546cc5739a/Barotrauma/BarotraumaShared/SharedSource/Items/Inventory.cs#L13
@@ -101,21 +130,29 @@ for prefab in ItemPrefab.Prefabs do
 		}) or iterContains(values({ "bikehorn", "toyhammer" }), tostring(prefab.Identifier))
 	then
 		-- Don't change the player inventory stack size for these items
+		PrefabRollback:storeStackSizeState(prefab)
 		prefab.set_MaxStackSize(maxStackSize)
 		prefab.set_MaxStackSizeCharacterInventory(math.abs(prefab.MaxStackSizeCharacterInventory))
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize) -- WearableInventory applies to Toolbelts/Backpacks
 	elseif
 		-- todo: Only double the item's stack size in player inventory, and max verywhere else
-		-- for ammo items...
-		-- fix: ItemPrefab changes persist, so this multiplication keeps happening on each game load until
-		-- the stack size is 32
+		-- for ammo items in particular...
 		iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo", "smgammo", "handcannonammo" })
 		or iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1
 	then
 		-- Every small item should've max stack everywhere, excluding
 		-- those that shouldn't stack at all in the first place
+		PrefabRollback:storeStackSizeState(prefab)
 		prefab.set_MaxStackSize(maxStackSize)
 		prefab.set_MaxStackSizeCharacterInventory(characterInventoryCapacity)
 		prefab.set_MaxStackSizeHoldableOrWearableInventory(maxStackSize)
 	end
 end
+
+Hook.Add("stop", "MoreStackSize.stop", function()
+	--- Reverting on exit to menu, since the ItemPrefab changes seem to persist.
+	--- This prevents cases where for eg. you went back to main menu from an SP session, and then to join
+	--- some MP server after disabling this mod, but the issue is that those stack sizes changes are still
+	---  present and so, they'll cause syncing issues in MP, with stack sizes being different for client and server
+	PrefabRollback:rollbackStackSizeStates()
+end)
