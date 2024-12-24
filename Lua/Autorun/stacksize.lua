@@ -1,6 +1,7 @@
 LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSize")
 LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeCharacterInventory")
 LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeHoldableOrWearableInventory")
+LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.Items.Components.ItemContainer"], "maxStackSize")
 
 local function values(t)
 	local f, s, i = pairs(t)
@@ -109,11 +110,33 @@ end
 -- as it'd either impact network performance or not work outright
 -- without some heavy changes to both server and client code.
 local maxStackSize = 62
-local holdableContainerCapacity = 32 -- from observation only, not checked
-local characterInventoryCapacity = holdableContainerCapacity
+local mobileContainerCapacity = 64
+local stationaryContainerCapacity = 64
+local crateCapacity = stationaryContainerCapacity
+local characterInventoryCapacity = mobileContainerCapacity
 
--- todo: Modify MaxStackSize of containers too.
+-- Patching MaxStackSize of containers
+-- This doesn't persist, so no need for cleanup
+-- Taken from Stack Size 128x Lua
+--
 -- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container
+Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
+	"System.Int32",
+}, function(instance, _ptable)
+	if instance.maxStackSize > 1 and instance.maxStackSize < 64 then
+		local tags = instance.Item.Tags
+
+		if string.match(tags, "mobilecontainer") or string.match(tags, "scooter") then
+			instance.maxStackSize = mobileContainerCapacity
+		elseif string.match(tags, "crate") then
+			instance.maxStackSize = crateCapacity
+		elseif string.match(tags, "container") then
+			instance.maxStackSize = stationaryContainerCapacity
+		else
+			instance.maxStackSize = maxStackSize
+		end
+	end
+end, Hook.HookMethodType.After)
 
 -- note: By default, some items may have their MaxStackSizeCharacterInventory and/or MaxStackSizeHoldableOrWearableInventory
 -- set to -1, which means that MaxStackSizeCharacterInventory will use the value of MaxStackSize and MaxStackSizeHoldableOrWearableInventory
