@@ -142,6 +142,7 @@ end, Hook.HookMethodType.After)
 -- set to -1, which means that MaxStackSizeCharacterInventory will use the value of MaxStackSize and MaxStackSizeHoldableOrWearableInventory
 -- will use the value of MaxStackSizeCharacterInventory
 
+-- todo: Make all this configurable
 for prefab in ItemPrefab.Prefabs do
 	if
 		iterContainsAny(prefab.Tags, {
@@ -150,7 +151,7 @@ for prefab in ItemPrefab.Prefabs do
 			-- For wrench and screwdriver
 			"simpletool",
 			"multitool",
-		}) or iterContains(values({ "bikehorn", "toyhammer" }), tostring(prefab.Identifier))
+		}) or iterContains(values({ "bikehorn", "toyhammer", "spinelingspikeloot" }), tostring(prefab.Identifier))
 	then
 		-- Don't change the player inventory stack size for these items
 		PrefabRollback:storeStackSizeState(prefab)
