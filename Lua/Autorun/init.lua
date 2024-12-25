@@ -113,7 +113,7 @@ local maxStackSize = 62
 local mobileContainerCapacity = 64
 local stationaryContainerCapacity = 64
 local crateCapacity = stationaryContainerCapacity
-local characterInventoryCapacity = mobileContainerCapacity
+local characterInventoryCapacity = math.min(maxStackSize, mobileContainerCapacity)
 
 -- Patching MaxStackSize of containers
 -- This doesn't persist, so no need for cleanup
