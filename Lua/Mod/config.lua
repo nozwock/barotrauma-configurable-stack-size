@@ -32,7 +32,7 @@ local Config = {
 		---@type ItemPatches
 		itemPatches = {},
 	},
-	filePath = modPath .. "/" .. "config.json",
+	filename = "config.json",
 }
 local _ConfigMetaTable = {
 	__index = Config,
@@ -59,9 +59,11 @@ local _ItemPatchMetaTable = {
 -- Have to type param type list this instead of class/field because luals won't look at fields
 -- when trying to cast and fail early saying can't convert one type to another, and so can't have
 -- "OptionalTypes" for params.
+
 ---@param cfg_data { version: integer?, itemPatches: ItemPatches }
+---@param filename? string
 ---@return Config
-function Config.new(cfg_data)
+function Config.new(cfg_data, filename)
 	if not cfg_data.version then
 		cfg_data.version = Config.data.version
 	end
@@ -70,6 +72,12 @@ function Config.new(cfg_data)
 	}
 	setmetatable(cfg.data, _ConfigDataMetaTable)
 	setmetatable(cfg, _ConfigMetaTable)
+	---@cast cfg Config
+
+	if filename then
+		cfg.filename = filename
+	end
+
 	return cfg
 end
 
@@ -160,8 +168,13 @@ function Config.tryFrom(cfg_data)
 	return Config.new(valid_cfg_data)
 end
 
+---@param filename? string
+function Config.getFilePath(filename)
+	return modPath .. "/" .. filename or Config.filename
+end
+
 function Config:storeToDisk()
-	File.Write(self.filePath, tostring(self))
+	File.Write(self.getFilePath(self.filename), tostring(self))
 end
 
 ---@param s string
@@ -170,9 +183,10 @@ function Config.tryLoadFromString(s)
 	return Config.tryFrom(json.parse(s))
 end
 
+---@param filename? string
 ---@return Config
-function Config.tryLoadFromDisk()
-	return Config.tryFrom(json.parse(File.Read(Config.filePath)))
+function Config.tryLoadFromDisk(filename)
+	return Config.tryFrom(json.parse(File.Read(Config.getFilePath(filename))))
 end
 
 Config.default = Config.new({
