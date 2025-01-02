@@ -108,9 +108,7 @@ end
 ---@param cfg_data table
 ---@return Config
 function Config.tryFrom(cfg_data)
-	local valid_cfg_data = {}
-	setmetatable(valid_cfg_data, _ConfigDataMetaTable)
-	---@cast valid_cfg_data ConfigData
+	---@cast cfg_data ConfigData
 
 	---@param list any[]
 	---@param type_ string
@@ -133,11 +131,15 @@ function Config.tryFrom(cfg_data)
 	end
 
 	setmetatable(cfg_data, _ConfigDataMetaTable)
-	if not (type(cfg_data.version) == "number" and type(cfg_data.itemPatches) == "table") then
+	if
+		not (
+			type(cfg_data.version) == "number"
+			and type(cfg_data.itemPatches) == "table"
+			and allOfTypeInList(cfg_data.containerOptions, "number")
+		)
+	then
 		error("ConfigData's fields have invalid value type")
 	end
-
-	valid_cfg_data.version = cfg_data.version
 
 	for _, itemPatch in pairs(cfg_data.itemPatches) do
 		if type(itemPatch) ~= "table" then
@@ -174,11 +176,9 @@ function Config.tryFrom(cfg_data)
 				error("Operation's field `value` must be a number")
 			end
 		end
-
-		table.insert(valid_cfg_data.itemPatches, itemPatch)
 	end
 
-	return Config.new(valid_cfg_data)
+	return Config.new(cfg_data)
 end
 
 ---@param filename? string
