@@ -1,3 +1,4 @@
+require("Mod.ext")
 local utils = require("Mod.utils")
 
 ---@type string
@@ -28,6 +29,14 @@ local Config = {
 	data = {
 		---@type integer
 		version = 1, -- For migrations. Assume current version if not present
+		---@class ContainerOptions
+		containerOptions = {
+			maxStackSize = 64,
+			characterInventoryCapacity = 32,
+			mobileContainerCapacity = 32,
+			crateContainerCapacity = 64,
+			stationaryContainerCapacity = 64,
+		},
 		---@alias ItemPatches ItemPatch[]
 		---@type ItemPatches
 		itemPatches = {},
@@ -60,13 +69,17 @@ local _ItemPatchMetaTable = {
 -- when trying to cast and fail early saying can't convert one type to another, and so can't have
 -- "OptionalTypes" for params.
 
----@param cfg_data { version: integer?, itemPatches: ItemPatches }
+---@param cfg_data { version: integer?, containerOptions: ContainerOptions?, itemPatches: ItemPatches }
 ---@param filename? string
 ---@return Config
 function Config.new(cfg_data, filename)
 	if not cfg_data.version then
 		cfg_data.version = Config.data.version
 	end
+	if not cfg_data.containerOptions then
+		cfg_data.containerOptions = table.shallowcopy(Config.data.containerOptions)
+	end
+
 	local cfg = {
 		data = cfg_data --[[@as ConfigData]],
 	}
