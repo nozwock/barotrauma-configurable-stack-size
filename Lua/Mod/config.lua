@@ -215,6 +215,9 @@ function Config.tryLoadFromDiskOrDefault(filename)
 	end
 end
 
+-- Arbitrary max item stacksize limit is (6 bits, i.e. 2 ^ 6 - 1) = 63
+-- Likely there due to network optimizations.
+-- https://github.com/FakeFishGames/Barotrauma/blob/0e8fb6569d2810e2f8ad5fb17b4bba546cc5739a/Barotrauma/BarotraumaShared/SharedSource/Items/Inventory.cs#L13
 Config.default = Config.new({
 	itemPatches = {
 		Config.newItemPatch({
@@ -243,6 +246,8 @@ Config.default = Config.new({
 			},
 		}),
 		Config.newItemPatch({
+			-- Every small item should've max stack everywhere, excluding
+			-- those that shouldn't stack at all in the first place
 			tags = { "smallitem" },
 			operations = {
 				{ key = "MaxStackSizeAll", operation = "=", value = 62 },
