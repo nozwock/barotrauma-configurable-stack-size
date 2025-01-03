@@ -45,8 +45,9 @@ local Config = {
 }
 local _ConfigMetaTable = {
 	__index = Config,
-	__tostring = function(v)
-		return json.serialize(v)
+	---@param cfg Config
+	__tostring = function(cfg)
+		return json.serialize(cfg.data)
 	end,
 }
 local _ConfigDataMetaTable = { __index = Config.data }
