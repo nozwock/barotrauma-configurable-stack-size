@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <contentpackage name="Configurable Stack Size (Lua)" modversion="1.0" corepackage="False">
     <!-- So that clients are made to download and enable the mod in a MP context -->
-    <Other file="%ModDir%/Lua/Autorun/init.lua" />
+    <Item file="%ModDir%/dummy.xml" />
 </contentpackage>
