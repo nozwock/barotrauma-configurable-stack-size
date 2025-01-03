@@ -46,15 +46,12 @@ Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 	"System.Int32",
 }, function(instance, ptable)
 	if instance.maxStackSize > 1 and instance.maxStackSize < 64 then
-		-- todo: do proper matching of tags, not some substring match
-		---@type string
-		local tags = instance.Item.Tags
-
-		if string.match(tags, "mobilecontainer") or string.match(tags, "scooter") then
+		local item = instance.Item
+		if item.HasTag("mobilecontainer") or item.HasTag("scooter") then
 			instance.maxStackSize = containerSizes.mobileContainerCapacity
-		elseif string.match(tags, "crate") then
+		elseif item.HasTag("crate") then
 			instance.maxStackSize = containerSizes.crateContainerCapacity
-		elseif string.match(tags, "container") then
+		elseif item.HasTag("container") then
 			instance.maxStackSize = containerSizes.stationaryContainerCapacity
 		elseif ptable["value"] >= 64 then
 			instance.maxStackSize = containerSizes.maxStackSize
