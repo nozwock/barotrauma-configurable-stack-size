@@ -3,61 +3,9 @@ LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxS
 LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeHoldableOrWearableInventory")
 LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.Items.Components.ItemContainer"], "maxStackSize")
 
-local function values(t)
-	local f, s, i = pairs(t)
-	return function()
-		local _, v = f(s, i)
-		i = _
-		if v ~= nil then
-			return v
-		end
-	end
-end
-
-local function findAny(s, list)
-	for _, p in ipairs(list) do
-		if string.find(s, p) ~= nil then
-			return true
-		end
-	end
-	return false
-end
-
-local function iterFind(iter, pat)
-	for v in iter do
-		if string.find(v, pat) ~= nil then
-			return true
-		end
-	end
-	return false
-end
-
-local function iterFindAny(iter, list)
-	for _, p in ipairs(list) do
-		if iterFind(iter, p) then
-			return true
-		end
-	end
-	return false
-end
-
-local function iterContains(iter, val)
-	for v in iter do
-		if v == val then
-			return true
-		end
-	end
-	return false
-end
-
-local function iterContainsAny(iter, list)
-	for _, v in ipairs(list) do
-		if iterContains(iter, v) then
-			return true
-		end
-	end
-	return false
-end
+require("Mod.ext")
+local utils = require("Mod.utils")
+local Config = require("Mod.config")
 
 local function debugItemStackSize(prefab)
 	print(
@@ -144,13 +92,17 @@ end, Hook.HookMethodType.After)
 -- todo: Make all this configurable
 for prefab in ItemPrefab.Prefabs do
 	if
-		iterContainsAny(prefab.Tags, {
+		utils.iterContainsAny(prefab.Tags, {
 			"oxygensource",
 			"weldingfuel",
 			-- For wrench and screwdriver
 			"simpletool",
 			"multitool",
-		}) or iterContains(values({ "bikehorn", "toyhammer", "spinelingspikeloot" }), tostring(prefab.Identifier))
+		})
+		or utils.iterContains(
+			table.values({ "bikehorn", "toyhammer", "spinelingspikeloot" }),
+			tostring(prefab.Identifier)
+		)
 	then
 		-- Don't change the player inventory stack size for these items
 		PrefabRollback:storeStackSizeState(prefab)
@@ -160,8 +112,10 @@ for prefab in ItemPrefab.Prefabs do
 	elseif
 		-- todo: Only double the item's stack size in player inventory, and max verywhere else
 		-- for ammo items in particular...
-		iterContainsAny(prefab.Tags, { "mobilebattery", "handheldammo", "shotgunammo", "smgammo", "handcannonammo" })
-		or iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1
+		utils.iterContainsAny(
+			prefab.Tags,
+			{ "mobilebattery", "handheldammo", "shotgunammo", "smgammo", "handcannonammo" }
+		) or utils.iterContainsAny(prefab.Tags, { "smallitem" }) and prefab.MaxStackSize > 1
 	then
 		-- Every small item should've max stack everywhere, excluding
 		-- those that shouldn't stack at all in the first place
