@@ -171,7 +171,7 @@ for prefab in ItemPrefab.Prefabs do
 	end
 end
 
-Hook.Add("stop", "MoreStackSize.stop", function()
+Hook.Add("stop", "ConfigurableStackSize.stop", function()
 	--- Reverting on exit to menu, since the ItemPrefab changes seem to persist.
 	--- This prevents cases where for eg. you went back to main menu from an SP session, and then to join
 	--- some MP server after disabling this mod, but the issue is that those stack sizes changes are still
