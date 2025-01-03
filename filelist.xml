@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <contentpackage name="More Stack Size Lua" modversion="1.0" corepackage="False">
-    <Item file="%ModDir%/dummy.xml" /> <!-- So that clients are made to download and enable the mod
-    in a MP context -->
+    <!-- So that clients are made to download and enable the mod in a MP context -->
+    <Other file="%ModDir%/Lua/Autorun/init.lua" />
 </contentpackage>
