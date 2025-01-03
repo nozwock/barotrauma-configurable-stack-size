@@ -7,18 +7,6 @@ require("Mod.ext")
 local utils = require("Mod.utils")
 local Config = require("Mod.config")
 
-local function debugItemStackSize(prefab)
-	print(
-		string.format(
-			"%s (max:%d, hotbar:%d, container:%d)",
-			tostring(prefab.Identifier),
-			prefab.MaxStackSize,
-			prefab.MaxStackSizeCharacterInventory,
-			prefab.MaxStackSizeHoldableOrWearableInventory
-		)
-	)
-end
-
 ---@class PrefabRollback
 local PrefabRollback = {
 	---@type table<string, StackSizeState>
