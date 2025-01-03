@@ -95,9 +95,22 @@ for prefab in ItemPrefab.Prefabs do
 				---| "MaxStackSizeHoldableOrWearableInventory"
 
 				---@param prefab_field ItemPrefabStackSizeField
-				---@param value number
+				---@param value number|string
 				---@return number
 				local function evalOperationValue(prefab_field, value)
+					if type(value) == "string" then
+						local var_name = string.match(value, "^%s*{%s*(%a[%w_]*)%s*}%s*$")
+						if not var_name then
+							error(string.format("Operation value has invalid syntax: `%s`", value))
+						end
+
+						if not containerSizes[var_name] then
+							error(string.format("Could not found variable named `%s` for Operation value", var_name))
+						end
+
+						value = containerSizes[var_name]
+					end
+
 					if op.operation == "+" then
 						return prefab[prefab_field] + value
 					elseif op.operation == "*" then
@@ -117,7 +130,6 @@ for prefab in ItemPrefab.Prefabs do
 
 				--- What have I done...
 				if op.key == "MaxStackSizeAll" then
-					-- todo: allow `op.value` to be a string referencing values from containerOptions
 					prefab.set_MaxStackSize(evalOperationValue("MaxStackSize", op.value))
 					prefab.set_MaxStackSizeCharacterInventory(
 						math.min(

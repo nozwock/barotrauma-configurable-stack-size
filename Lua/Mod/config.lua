@@ -100,7 +100,7 @@ end
 ---@class ItemPatchOperation
 ---@field operation OperationType
 ---@field key OperationKey
----@field value number
+---@field value number|string The `string` variant is to be validated at runtime where the value will be used
 
 ---@param t { applyOnlyToStackables: boolean?, tags: string[]?, identifiers: string[]?, operations: ItemPatchOperation[]? }
 function Config.newItemPatch(t)
@@ -175,8 +175,8 @@ function Config.tryFrom(cfg_data)
 				error(string.format("Invalid operation key: ", operation.key))
 			end
 
-			if not type(operation.value) == "number" then
-				error("Operation's field `value` must be a number")
+			if not (type(operation.value) == "number" or type(operation.value) == "string") then
+				error("Operation's field `value` must be a number or string")
 			end
 		end
 	end
@@ -233,18 +233,18 @@ Config.default = Config.new({
 			},
 			identifiers = { "bikehorn", "toyhammer", "spinelingspikeloot" },
 			operations = {
-				{ key = "MaxStackSize", operation = "=", value = 62 },
+				{ key = "MaxStackSize", operation = "=", value = "{maxStackSize}" },
 				-- Leave character inventory stack size as is.
-				{ key = "MaxStackSizeHoldableOrWearableInventory", operation = "=", value = 62 },
+				{ key = "MaxStackSizeHoldableOrWearableInventory", operation = "=", value = "{maxStackSize}" },
 			},
 		}),
 		Config.newItemPatch({
 			applyOnlyToStackables = false,
 			tags = { "mobilebattery", "handheldammo", "shotgunammo", "smgammo", "handcannonammo" },
 			operations = {
-				{ key = "MaxStackSize", operation = "=", value = 62 },
+				{ key = "MaxStackSize", operation = "=", value = "{maxStackSize}" },
 				{ key = "MaxStackSizeCharacterInventory", operation = "*", value = 2 },
-				{ key = "MaxStackSizeHoldableOrWearableInventory", operation = "=", value = 62 },
+				{ key = "MaxStackSizeHoldableOrWearableInventory", operation = "=", value = "{maxStackSize}" },
 			},
 		}),
 		Config.newItemPatch({
@@ -252,7 +252,9 @@ Config.default = Config.new({
 			-- those that shouldn't stack at all in the first place
 			tags = { "smallitem" },
 			operations = {
-				{ key = "MaxStackSizeAll", operation = "=", value = 62 },
+				{ key = "MaxStackSize", operation = "=", value = "{maxStackSize}" },
+				{ key = "MaxStackSizeCharacterInventory", operation = "=", value = "{characterInventoryCapacity}" },
+				{ key = "MaxStackSizeHoldableOrWearableInventory", operation = "=", value = "{maxStackSize}" },
 			},
 		}),
 	},
