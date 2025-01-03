@@ -19,13 +19,12 @@ local function debugItemStackSize(prefab)
 	)
 end
 
-local PrefabRollback = {}
-function PrefabRollback.storeStackSizeState(self, item_prefab)
-	if not self.items then
-		---@type table<string, StackSizeState>
-		self.items = {}
-	end
-
+---@class PrefabRollback
+local PrefabRollback = {
+	---@type table<string, StackSizeState>
+	itemPrefabs = {},
+}
+function PrefabRollback:storeStackSizeState(item_prefab)
 	---@class StackSizeState
 	local state = {
 		MaxStackSize = item_prefab.MaxStackSize,
@@ -33,14 +32,10 @@ function PrefabRollback.storeStackSizeState(self, item_prefab)
 		MaxStackSizeHoldableOrWearableInventory = item_prefab.MaxStackSizeHoldableOrWearableInventory,
 	}
 
-	self.items[item_prefab.Identifier] = state
+	self.itemPrefabs[item_prefab.Identifier] = state
 end
-function PrefabRollback.rollbackStackSizeStates(self)
-	if not self.items then
-		return
-	end
-
-	for id, state in pairs(self.items) do
+function PrefabRollback:rollbackStackSizeStates()
+	for id, state in pairs(self.itemPrefabs) do
 		local item_prefab = ItemPrefab.GetItemPrefab(id)
 		item_prefab.set_MaxStackSize(state.MaxStackSize)
 		item_prefab.set_MaxStackSizeCharacterInventory(state.MaxStackSizeCharacterInventory)
@@ -60,7 +55,7 @@ end
 local maxStackSize = 62
 local mobileContainerCapacity = 64
 local stationaryContainerCapacity = 64
-local crateCapacity = stationaryContainerCapacity
+local crateContainerCapacity = stationaryContainerCapacity
 local characterInventoryCapacity = math.min(maxStackSize, mobileContainerCapacity)
 
 -- Patching MaxStackSize of containers
@@ -77,7 +72,7 @@ Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 		if string.match(tags, "mobilecontainer") or string.match(tags, "scooter") then
 			instance.maxStackSize = mobileContainerCapacity
 		elseif string.match(tags, "crate") then
-			instance.maxStackSize = crateCapacity
+			instance.maxStackSize = crateContainerCapacity
 		elseif string.match(tags, "container") then
 			instance.maxStackSize = stationaryContainerCapacity
 		end
