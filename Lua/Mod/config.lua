@@ -186,8 +186,9 @@ function Config.getFilePath(filename)
 	return modPath .. "/" .. filename or Config.filename
 end
 
-function Config:storeToDisk()
-	File.Write(self.getFilePath(self.filename), tostring(self))
+---@param filename? string
+function Config:storeToDisk(filename)
+	File.Write(self.getFilePath(filename or self.filename), tostring(self))
 end
 
 ---@param s string
@@ -198,8 +199,18 @@ end
 
 ---@param filename? string
 ---@return Config
-function Config.tryLoadFromDisk(filename)
-	return Config.tryFrom(json.parse(File.Read(Config.getFilePath(filename))))
+function Config.tryLoadFromDiskOrDefault(filename)
+	local filepath = Config.getFilePath(filename)
+	if File.Exists(filepath) then
+		return Config.tryFrom(json.parse(File.Read(filepath)))
+	else
+		local cfg = table.shallowcopy(Config.default)
+		if filename then
+			cfg.filename = filename
+		end
+		cfg:storeToDisk()
+		return cfg
+	end
 end
 
 Config.default = Config.new({
