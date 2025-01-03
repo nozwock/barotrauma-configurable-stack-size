@@ -202,7 +202,11 @@ end
 function Config.tryLoadFromDiskOrDefault(filename)
 	local filepath = Config.getFilePath(filename)
 	if File.Exists(filepath) then
-		return Config.tryFrom(json.parse(File.Read(filepath)))
+		local cfg = Config.tryFrom(json.parse(File.Read(filepath)))
+		if filename then
+			cfg.filename = filename
+		end
+		return cfg
 	else
 		local cfg = table.shallowcopy(Config.default)
 		if filename then
