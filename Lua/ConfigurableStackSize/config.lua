@@ -33,6 +33,7 @@ local Config = {
 		version = 1, -- For migrations. Assume current version if not present
 		---@class ContainerOptions
 		containerOptions = {
+			-- todo?: Should container sizes be bound by ContainerOptions.maxStackSize?
 			maxStackSize = 64,
 			characterInventoryCapacity = 32,
 			mobileContainerCapacity = 32,

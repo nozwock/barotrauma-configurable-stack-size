@@ -5,12 +5,8 @@ local network = require("ConfigurableStackSize.network")
 
 local Config = config.Config
 
--- todo: have separate config for sp and mp
 -- todo: look into whether the config files will be downloaded by the client too or not, and if so
 -- figure out how to exclude them
-
-local cfg = Config.tryLoadFromDiskOrDefault()
--- todo?: Should container sizes be bound by ContainerOptions.maxStackSize?
 
 ---@param cfg Config
 local function runClientPatches(cfg)
@@ -19,9 +15,11 @@ local function runClientPatches(cfg)
 end
 
 if Game.IsSingleplayer then
+	local cfg = Config.tryLoadFromDiskOrDefault("singleplayer_config.json")
 	patches.runBypassMaxStackSizeLimit()
 	runClientPatches(cfg)
 elseif SERVER then
+	local cfg = Config.tryLoadFromDiskOrDefault("multiplayer_config.json")
 	network.server.setSendConfigHandler(function()
 		return cfg
 	end)
