@@ -183,7 +183,7 @@ end
 
 ---@param filename? string
 function Config.getFilePath(filename)
-	return modPath .. "/" .. filename or Config.filename
+	return modPath .. "/" .. (filename or Config.filename)
 end
 
 ---@param filename? string
@@ -208,10 +208,7 @@ function Config.tryLoadFromDiskOrDefault(filename)
 		end
 		return cfg
 	else
-		local cfg = table.shallowcopy(Config.default)
-		if filename then
-			cfg.filename = filename
-		end
+		local cfg = Config.new(table.shallowcopy(Config.default.data), filename)
 		cfg:storeToDisk()
 		return cfg
 	end
