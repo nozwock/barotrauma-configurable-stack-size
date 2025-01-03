@@ -1,4 +1,3 @@
----@class UtilsModule
 local utils = {}
 
 ---@class Set

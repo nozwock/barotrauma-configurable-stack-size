@@ -1,6 +1,8 @@
 require("Mod.ext")
 local utils = require("Mod.utils")
 
+local mod = {}
+
 ---@type string
 local modPath = ...
 
@@ -256,4 +258,6 @@ Config.default = Config.new({
 	},
 })
 
-return Config
+mod.Config = Config
+
+return mod

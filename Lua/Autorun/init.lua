@@ -7,6 +7,8 @@ require("Mod.ext")
 local utils = require("Mod.utils")
 local config = require("Mod.config")
 
+local Config = config.Config
+
 ---@class PrefabRollback
 local PrefabRollback = {
 	---@type table<string, StackSizeState>
@@ -31,7 +33,7 @@ function PrefabRollback:rollbackStackSizeStates()
 	end
 end
 
-local cfg = config.tryLoadFromDiskOrDefault()
+local cfg = Config.tryLoadFromDiskOrDefault()
 local containerSizes = cfg.data.containerOptions
 -- todo?: Should container sizes be bound by ContainerOptions.maxStackSize?
 
