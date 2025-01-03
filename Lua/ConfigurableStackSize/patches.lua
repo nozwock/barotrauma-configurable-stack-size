@@ -26,6 +26,63 @@ function PrefabRollback:rollbackStackSizeStates()
 	end
 end
 
+--- Singleplayer only!
+--- Taken from 'Stack Size 128x Lua.'
+---
+--- https://steamcommunity.com/sharedfiles/filedetails/?id=2961866549
+function mod.runBypassMaxStackSizeLimit()
+	if not Game.IsSingleplayer then
+		return
+	end
+
+	LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.ItemPrefab"], "maxStackSize")
+	LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.ItemPrefab"], "maxStackSizeCharacterInventory")
+	LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.ItemPrefab"], "maxStackSizeHoldableOrWearableInventory")
+
+	LuaUserData.RegisterType("ConfigurableStackSize.ReflectionExtensions")
+	local Int32Type = LuaUserData.RegisterType("System.Int32")
+
+	local ReflectionExtensions = LuaUserData.CreateStatic("ConfigurableStackSize.ReflectionExtensions")
+
+	-- MaxStackWithExtra does the max value bound in the getter of ItemPrefab's MaxStackSize
+	local MaxStackWithExtraInternalIdentifier = ReflectionExtensions.FindMethodNameRegex(
+		"Barotrauma.ItemPrefab",
+		[[<GetMaxStackSize>g__MaxStackWithExtra\|[_\d]+]]
+	)
+
+	if MaxStackWithExtraInternalIdentifier == "" then
+		print("Failed to find the internal identifier for method MaxStackWithExtra")
+		return
+	end
+
+	-- Bypassing max value bound on setters
+	Hook.Patch("Barotrauma.ItemPrefab", MaxStackWithExtraInternalIdentifier, {
+		"System.Int32",
+		"System.Int32",
+	}, function(_instance, ptable)
+		ptable.ReturnValue =
+			LuaUserData.CreateUserDataFromDescriptor(ptable["maxStackSize"] + ptable["extraStackSize"], Int32Type)
+	end, Hook.HookMethodType.After)
+
+	Hook.Patch("Barotrauma.ItemPrefab", "set_MaxStackSize", {
+		"System.Int32",
+	}, function(instance, ptable)
+		instance.maxStackSize = ptable["value"]
+	end, Hook.HookMethodType.After)
+
+	Hook.Patch("Barotrauma.ItemPrefab", "set_MaxStackSizeCharacterInventory", {
+		"System.Int32",
+	}, function(instance, ptable)
+		instance.maxStackSizeCharacterInventory = ptable["value"]
+	end, Hook.HookMethodType.After)
+
+	Hook.Patch("Barotrauma.ItemPrefab", "set_MaxStackSizeHoldableOrWearableInventory", {
+		"System.Int32",
+	}, function(instance, ptable)
+		instance.maxStackSizeHoldableOrWearableInventory = ptable["value"]
+	end, Hook.HookMethodType.After)
+end
+
 --- Taken from 'Stack Size 128x Lua.'
 --- Patches MaxStackSize of containers.
 --- The changes don't persist, so no need for a cleanup.
@@ -33,6 +90,8 @@ end
 --- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container.
 ---@param containerSizes ContainerOptions
 function mod.runContainersPatch(containerSizes)
+	LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.Items.Components.ItemContainer"], "maxStackSize")
+
 	Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 		"System.Int32",
 	}, function(instance, ptable)
@@ -53,12 +112,18 @@ function mod.runContainersPatch(containerSizes)
 	end, Hook.HookMethodType.After)
 end
 
----comment
 ---@param cfg Config
 function mod.runItemPrefabsPatch(cfg)
 	local containerSizes = cfg.data.containerOptions
 
 	PrefabRollback:rollbackStackSizeStates()
+
+	LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSize")
+	LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeCharacterInventory")
+	LuaUserData.MakeMethodAccessible(
+		Descriptors["Barotrauma.ItemPrefab"],
+		"set_MaxStackSizeHoldableOrWearableInventory"
+	)
 
 	for prefab in ItemPrefab.Prefabs do
 		-- Using `ipairs` here since we want to do this in a ordered top-down manner.
