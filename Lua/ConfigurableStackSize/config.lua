@@ -1,5 +1,5 @@
-require("Mod.ext")
-local utils = require("Mod.utils")
+require("ConfigurableStackSize.ext")
+local utils = require("ConfigurableStackSize.utils")
 
 local mod = {}
 

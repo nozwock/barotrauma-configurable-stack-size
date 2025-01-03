@@ -3,9 +3,9 @@ LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxS
 LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeHoldableOrWearableInventory")
 LuaUserData.MakeFieldAccessible(Descriptors["Barotrauma.Items.Components.ItemContainer"], "maxStackSize")
 
-require("Mod.ext")
-local utils = require("Mod.utils")
-local config = require("Mod.config")
+require("ConfigurableStackSize.ext")
+local utils = require("ConfigurableStackSize.utils")
+local config = require("ConfigurableStackSize.config")
 
 local Config = config.Config
 
@@ -32,6 +32,12 @@ function PrefabRollback:rollbackStackSizeStates()
 		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state.MaxStackSizeHoldableOrWearableInventory)
 	end
 end
+
+-- todo: organize these into a patches module
+-- todo: allow stacking to go above the 63 limit for singleplayer
+-- todo: handle config syncing in multiplayer
+-- todo: look into whether the config files will be downloaded by the client too or not, and if so
+-- figure out how to exclude them
 
 local cfg = Config.tryLoadFromDiskOrDefault()
 local containerSizes = cfg.data.containerOptions
