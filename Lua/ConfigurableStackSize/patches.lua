@@ -168,7 +168,7 @@ function mod.runItemPrefabsPatch(cfg)
 
 	for prefab in ItemPrefab.Prefabs do
 		-- Using `ipairs` here since we want to do this in a ordered top-down manner.
-		for _, itemPatch in ipairs(cfg.data.itemPatches) do
+		for idx, itemPatch in ipairs(cfg.data.itemPatches) do
 			if itemPatch.applyOnlyToStackables and prefab.MaxStackSize == 1 then
 				goto continue
 			end
@@ -188,6 +188,7 @@ function mod.runItemPrefabsPatch(cfg)
 				if state.logging then
 					log = {
 						patchType = "item",
+						patchIdx = idx,
 						name = tostring(prefab.Name),
 						identifier = tostring(prefab.Identifier),
 						MaxStackSize = {
