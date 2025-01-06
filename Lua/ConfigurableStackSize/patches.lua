@@ -126,7 +126,12 @@ function mod.runContainersPatch(containerSizes)
 				instance.maxStackSize = containerSizes.mobileContainerCapacity
 			elseif item.HasTag("crate") then
 				instance.maxStackSize = containerSizes.crateContainerCapacity
-			elseif item.HasTag("container") then
+			elseif
+				item.HasTag("container")
+				-- note There seems to be a "Cabinets" item (id: opdeco_cabinetsdorm) that has no tag, which leads to it not being patched with correct group
+				-- todo: Hmm, for cases like these, probably will have to make container patches as configurable as item patches in the future
+				or utils.iterContains(table.values({ "opdeco_cabinetsdorm" }), tostring(item.Prefab.Identifier))
+			then
 				instance.maxStackSize = containerSizes.stationaryContainerCapacity
 			elseif ptable["value"] >= 64 then
 				instance.maxStackSize = containerSizes.maxStackSize
