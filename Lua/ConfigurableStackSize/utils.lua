@@ -1,5 +1,7 @@
 local utils = {}
 
+local modPath = ...
+
 ---@class Set
 local Set = {
 	---@type table<SetValue, true?>
@@ -110,6 +112,40 @@ function utils.iterContainsAny(iter, list)
 		end
 	end
 	return false
+end
+
+do
+	-- LuaUserData.MakeMethodAccessible(Descriptors["System.IO.File"], "Create")
+	LuaUserData.RegisterType("System.IO.FileStream")
+	LuaUserData.RegisterType("System.IO.BufferedStream")
+	LuaUserData.RegisterType("System.IO.StreamWriter")
+	local BufferedStream = LuaUserData.CreateStatic("System.IO.BufferedStream")
+	local StreamWriter = LuaUserData.CreateStatic("System.IO.StreamWriter")
+
+	---@type System.IO.StreamWriter[]
+	local createdLoggers = {}
+
+	---@class System.IO.StreamWriter
+	---@field WriteLine fun(_:string)
+	---@field Write fun(_:string)
+	---@field Flush fun()
+	---@field Close fun()
+
+	---@param filename string
+	---@return  System.IO.StreamWriter
+	function utils.newLogger(filename)
+		local fileStream = File.OpenWrite(modPath .. "/" .. filename)
+		local streamWriter = StreamWriter(BufferedStream(fileStream))
+
+		table.insert(createdLoggers, streamWriter)
+		return streamWriter
+	end
+
+	Hook.Add("stop", function()
+		for _, logger in ipairs(createdLoggers) do
+			logger.Close()
+		end
+	end)
 end
 
 utils.Set = Set
