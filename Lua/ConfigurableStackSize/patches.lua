@@ -98,8 +98,6 @@ function mod.runBypassMaxStackSizeLimit()
 	end, Hook.HookMethodType.After)
 end
 
--- todo: validate stack size numbers for < 1
-
 --- Taken from 'Stack Size 128x Lua.'
 --- Patches MaxStackSize of containers.
 --- note: ~~The changes don't persist, so no need for a cleanup.~~ This was a lie, they do persist until the next session
