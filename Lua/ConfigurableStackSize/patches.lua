@@ -87,9 +87,13 @@ function mod.runBypassMaxStackSizeLimit()
 	end, Hook.HookMethodType.After)
 end
 
+-- todo: validate stack size numbers for < 1
+
 --- Taken from 'Stack Size 128x Lua.'
 --- Patches MaxStackSize of containers.
---- The changes don't persist, so no need for a cleanup.
+--- note: ~~The changes don't persist, so no need for a cleanup.~~ This was a lie, they do persist until the next session
+--- where these values will get re-evaluated...
+--- So, that means you can't do stuff like `if instance.maxStackSize < 64`, that could end up skipping stuff
 ---
 --- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container.
 ---@param containerSizes ContainerOptions
@@ -99,7 +103,7 @@ function mod.runContainersPatch(containerSizes)
 	Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 		"System.Int32",
 	}, function(instance, ptable)
-		if instance.maxStackSize > 1 and instance.maxStackSize < 64 then
+		if instance.maxStackSize > 1 then
 			---@cast instance Barotrauma.Items.Components.ItemContainer
 			local item = instance.Item
 
