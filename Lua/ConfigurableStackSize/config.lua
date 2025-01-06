@@ -29,6 +29,7 @@ local Config = {
 	--- This is what actually serializes.
 	---@class ConfigData
 	data = {
+		logging = false,
 		---@type integer
 		version = 1, -- For migrations. Assume current version if not present
 		---@class ContainerOptions
@@ -73,13 +74,10 @@ local _ItemPatchMetaTable = {
 -- when trying to cast and fail early saying can't convert one type to another, and so can't have
 -- "OptionalTypes" for params.
 
----@param cfg_data { version: integer?, containerOptions: ContainerOptions?, itemPatches: ItemPatches }
+---@param cfg_data { version: integer?, containerOptions: ContainerOptions?, itemPatches: ItemPatches, logging: boolean }
 ---@param filename? string
 ---@return Config
 function Config.new(cfg_data, filename)
-	if not cfg_data.version then
-		cfg_data.version = Config.data.version
-	end
 	if not cfg_data.containerOptions then
 		cfg_data.containerOptions = table.shallowcopy(Config.data.containerOptions)
 	end
@@ -90,6 +88,10 @@ function Config.new(cfg_data, filename)
 	setmetatable(cfg.data, _ConfigDataMetaTable)
 	setmetatable(cfg, _ConfigMetaTable)
 	---@cast cfg Config
+
+	-- Set if logging/etc is retrieved from __index metamethod
+	cfg.data.version = Config.data.version
+	cfg.data.logging = cfg.data.logging
 
 	if filename then
 		cfg.filename = filename

@@ -1,4 +1,5 @@
 local utils = require("ConfigurableStackSize.utils")
+local state = require("ConfigurableStackSize.state")
 
 local mod = {}
 
@@ -7,22 +8,25 @@ local PrefabRollback = {
 	---@type table<string, StackSizeState>
 	itemPrefabs = {},
 }
+
+local logger = utils.newLogger("patch.log")
+
 function PrefabRollback:storeStackSizeState(item_prefab)
 	---@class StackSizeState
-	local state = {
+	local state_ = {
 		MaxStackSize = item_prefab.MaxStackSize,
 		MaxStackSizeCharacterInventory = item_prefab.MaxStackSizeCharacterInventory,
 		MaxStackSizeHoldableOrWearableInventory = item_prefab.MaxStackSizeHoldableOrWearableInventory,
 	}
 
-	self.itemPrefabs[tostring(item_prefab.Identifier)] = state
+	self.itemPrefabs[tostring(item_prefab.Identifier)] = state_
 end
 function PrefabRollback:rollbackStackSizeStates()
-	for id, state in pairs(self.itemPrefabs) do
+	for id, state_ in pairs(self.itemPrefabs) do
 		local item_prefab = ItemPrefab.GetItemPrefab(id)
-		item_prefab.set_MaxStackSize(state.MaxStackSize)
-		item_prefab.set_MaxStackSizeCharacterInventory(state.MaxStackSizeCharacterInventory)
-		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state.MaxStackSizeHoldableOrWearableInventory)
+		item_prefab.set_MaxStackSize(state_.MaxStackSize)
+		item_prefab.set_MaxStackSizeCharacterInventory(state_.MaxStackSizeCharacterInventory)
+		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state_.MaxStackSizeHoldableOrWearableInventory)
 	end
 end
 
@@ -98,6 +102,19 @@ function mod.runContainersPatch(containerSizes)
 		if instance.maxStackSize > 1 and instance.maxStackSize < 64 then
 			---@cast instance Barotrauma.Items.Components.ItemContainer
 			local item = instance.Item
+
+			local log
+			if state.logging then
+				log = {
+					patchType = "container",
+					name = tostring(item.Prefab.Name),
+					identifier = tostring(item.Prefab.Identifier),
+					maxStackSize = {
+						before = instance.maxStackSize,
+					},
+				}
+			end
+
 			if item.HasTag("mobilecontainer") or item.HasTag("scooter") then
 				instance.maxStackSize = containerSizes.mobileContainerCapacity
 			elseif item.HasTag("crate") then
@@ -108,6 +125,14 @@ function mod.runContainersPatch(containerSizes)
 				instance.maxStackSize = containerSizes.maxStackSize
 			end
 			-- Don't catch all here using `else`, as that would include even container slots of weapons, etc. which is used to hold ammo
+
+			if state.logging then
+				log.maxStackSize.after = instance.maxStackSize
+				if log.maxStackSize.before ~= log.maxStackSize.after then
+					logger.WriteLine(json.serialize(log))
+					logger.Flush()
+				end
+			end
 		end
 	end, Hook.HookMethodType.After)
 end
@@ -142,6 +167,24 @@ function mod.runItemPrefabsPatch(cfg)
 				or utils.iterContains(table.values(itemPatch.identifiers), tostring(prefab.Identifier))
 			then
 				PrefabRollback:storeStackSizeState(prefab)
+
+				local log
+				if state.logging then
+					log = {
+						patchType = "item",
+						name = tostring(prefab.Name),
+						identifier = tostring(prefab.Identifier),
+						MaxStackSize = {
+							before = prefab.MaxStackSize,
+						},
+						MaxStackSizeCharacterInventory = {
+							before = prefab.MaxStackSizeCharacterInventory,
+						},
+						MaxStackSizeHoldableOrWearableInventory = {
+							before = prefab.MaxStackSizeHoldableOrWearableInventory,
+						},
+					}
+				end
 				local operationsDone = utils.Set.new()
 
 				-- note: By default, some items may have their MaxStackSizeCharacterInventory and/or MaxStackSizeHoldableOrWearableInventory
@@ -228,10 +271,21 @@ function mod.runItemPrefabsPatch(cfg)
 
 					::continue::
 				end
+
+				if state.logging then
+					log.MaxStackSize.after = prefab.MaxStackSize
+					log.MaxStackSizeCharacterInventory.after = prefab.MaxStackSizeCharacterInventory
+					log.MaxStackSizeHoldableOrWearableInventory.after = prefab.MaxStackSizeHoldableOrWearableInventory
+					logger.WriteLine(json.serialize(log))
+				end
 			end
 
 			::continue::
 		end
+	end
+
+	if state.logging then
+		logger.Flush()
 	end
 
 	Hook.Add("stop", "ConfigurableStackSize.stop", function()
