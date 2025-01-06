@@ -3,15 +3,17 @@ local state = require("ConfigurableStackSize.state")
 
 local mod = {}
 
----@class PrefabRollback
-local PrefabRollback = {
+---@class Rollback
+local Rollback = {
 	---@type table<string, StackSizeState>
 	itemPrefabs = {},
+	---@type table<string, integer>
+	itemContainerComponents = {},
 }
 
 local logger = utils.newLogger("patch.log")
 
-function PrefabRollback:storeStackSizeState(item_prefab)
+function Rollback:storeItemPrefabStackSize(item_prefab)
 	---@class StackSizeState
 	local state_ = {
 		MaxStackSize = item_prefab.MaxStackSize,
@@ -21,12 +23,21 @@ function PrefabRollback:storeStackSizeState(item_prefab)
 
 	self.itemPrefabs[tostring(item_prefab.Identifier)] = state_
 end
-function PrefabRollback:rollbackStackSizeStates()
+function Rollback:rollbackItemPrefabStackSizes()
 	for id, state_ in pairs(self.itemPrefabs) do
 		local item_prefab = ItemPrefab.GetItemPrefab(id)
 		item_prefab.set_MaxStackSize(state_.MaxStackSize)
 		item_prefab.set_MaxStackSizeCharacterInventory(state_.MaxStackSizeCharacterInventory)
 		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state_.MaxStackSizeHoldableOrWearableInventory)
+	end
+end
+---@param component Barotrauma.Items.Components.ItemContainer
+---@param stack_size integer
+function Rollback:storeInitialItemContainerCompStackSize(component, stack_size)
+	local id = tostring(component.Item.Prefab.Identifier)
+
+	if not self.itemContainerComponents[id] then
+		self.itemContainerComponents[id] = stack_size
 	end
 end
 
@@ -103,21 +114,13 @@ function mod.runContainersPatch(containerSizes)
 	Hook.Patch("Barotrauma.Items.Components.ItemContainer", "set_MaxStackSize", {
 		"System.Int32",
 	}, function(instance, ptable)
-		if instance.maxStackSize > 1 then
-			---@cast instance Barotrauma.Items.Components.ItemContainer
+		---@cast instance Barotrauma.Items.Components.ItemContainer
+
+		-- Incase the user sets maxStackSize to 1 for one or more container group.
+		if instance.maxStackSize > 1 or Rollback.itemContainerComponents[tostring(instance.Item.Prefab.Identifier)] then
 			local item = instance.Item
 
-			local log
-			if state.logging then
-				log = {
-					patchType = "container",
-					name = tostring(item.Prefab.Name),
-					identifier = tostring(item.Prefab.Identifier),
-					maxStackSize = {
-						before = instance.maxStackSize,
-					},
-				}
-			end
+			Rollback:storeInitialItemContainerCompStackSize(instance, ptable["value"])
 
 			if item.HasTag("mobilecontainer") or item.HasTag("scooter") then
 				instance.maxStackSize = containerSizes.mobileContainerCapacity
@@ -131,7 +134,16 @@ function mod.runContainersPatch(containerSizes)
 			-- Don't catch all here using `else`, as that would include even container slots of weapons, etc. which is used to hold ammo
 
 			if state.logging then
-				log.maxStackSize.after = instance.maxStackSize
+				local log = {
+					patchType = "container",
+					name = tostring(item.Prefab.Name),
+					identifier = tostring(item.Prefab.Identifier),
+					tags = item.Tags,
+					maxStackSize = {
+						before = ptable["value"],
+						after = instance.maxStackSize,
+					},
+				}
 				if log.maxStackSize.before ~= log.maxStackSize.after then
 					logger.WriteLine(json.serialize(log))
 					logger.Flush()
@@ -145,7 +157,7 @@ end
 function mod.runItemPrefabsPatch(cfg)
 	local containerSizes = cfg.data.containerOptions
 
-	PrefabRollback:rollbackStackSizeStates()
+	Rollback:rollbackItemPrefabStackSizes()
 
 	LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSize")
 	LuaUserData.MakeMethodAccessible(Descriptors["Barotrauma.ItemPrefab"], "set_MaxStackSizeCharacterInventory")
@@ -162,7 +174,7 @@ function mod.runItemPrefabsPatch(cfg)
 			end
 
 			-- Only apply the first ItemPatch on a ItemPrefab
-			if PrefabRollback.itemPrefabs[tostring(prefab.Identifier)] then
+			if Rollback.itemPrefabs[tostring(prefab.Identifier)] then
 				break
 			end
 
@@ -170,7 +182,7 @@ function mod.runItemPrefabsPatch(cfg)
 				utils.iterContainsAny(prefab.Tags, itemPatch.tags)
 				or utils.iterContains(table.values(itemPatch.identifiers), tostring(prefab.Identifier))
 			then
-				PrefabRollback:storeStackSizeState(prefab)
+				Rollback:storeItemPrefabStackSize(prefab)
 
 				local log
 				if state.logging then
@@ -297,7 +309,7 @@ function mod.runItemPrefabsPatch(cfg)
 		--- This prevents cases where for eg. you went back to main menu from an SP session, and then to join
 		--- some MP server after disabling this mod, but the issue is that those stack sizes changes are still
 		--- present and so, they'll cause syncing issues in MP, with stack sizes being different for client and server
-		PrefabRollback:rollbackStackSizeStates()
+		Rollback:rollbackItemPrefabStackSizes()
 	end)
 end
 
