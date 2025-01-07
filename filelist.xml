@@ -1,6 +1,4 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<contentpackage name="Configurable Stack Size (Lua)" steamworkshopid="3402019765" modversion="1.0"
-    corepackage="False">
-    <!-- So that clients are made to download and enable the mod in a MP context -->
-    <Item file="%ModDir%/dummy.xml" />
+<contentpackage name="Configurable Stack Size (Lua)" modversion="1.1" corepackage="False" steamworkshopid="3402019765" gameversion="1.7.7.0">
+  <Item file="%ModDir%/dummy.xml" />
 </contentpackage>
