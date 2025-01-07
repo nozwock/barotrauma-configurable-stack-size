@@ -29,6 +29,7 @@ elseif SERVER then
 	end)
 	runClientPatches(cfg)
 elseif CLIENT and Game.IsMultiplayer then
+	-- Don't enable state.logging for mp client, code in patches will break
 	network.client.setReceiveConfigHandler(function(serializedConfig)
 		runClientPatches(Config.tryLoadFromString(serializedConfig))
 	end)

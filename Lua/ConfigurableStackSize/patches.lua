@@ -11,10 +11,11 @@ local Rollback = {
 	itemContainerComponents = {},
 }
 
---- band aid fix
---- disable for mp clients
+--- Disable for mp clients
+--- To avoid host trying to open a file already opened by the non-dedicated server
+local logger
 if not (Game.IsMultiplayer and CLIENT) then
-	local logger = utils.newLogger("patch.log")
+	logger = utils.getPersistentFileStream("patch.log")
 end
 
 function Rollback:storeItemPrefabStackSize(item_prefab)
@@ -151,6 +152,8 @@ function mod.runContainersPatch(containerSizes)
 						after = instance.maxStackSize,
 					},
 				}
+				-- note: won't log all containers because the changes persist, and I'm not rolling back the values
+				-- before modifying them again
 				if log.maxStackSize.before ~= log.maxStackSize.after then
 					logger.WriteLine(json.serialize(log))
 					logger.Flush()

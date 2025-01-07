@@ -122,8 +122,8 @@ do
 	local BufferedStream = LuaUserData.CreateStatic("System.IO.BufferedStream")
 	local StreamWriter = LuaUserData.CreateStatic("System.IO.StreamWriter")
 
-	---@type System.IO.StreamWriter[]
-	local createdLoggers = {}
+	---@type table<string, StreamWriter>
+	local openedStreams = {}
 
 	---@class System.IO.StreamWriter
 	---@field WriteLine fun(_:string)
@@ -132,18 +132,44 @@ do
 	---@field Close fun()
 
 	---@param filename string
-	---@return  System.IO.StreamWriter
-	function utils.newLogger(filename)
+	---@return StreamWriter
+	function utils.getPersistentFileStream(filename)
+		if openedStreams[filename] then
+			return openedStreams[filename]
+		end
+
+		-- todo: Create or something instead of OpenWrite
 		local fileStream = File.OpenWrite(modPath .. "/" .. filename)
 		local streamWriter = StreamWriter(BufferedStream(fileStream))
 
-		table.insert(createdLoggers, streamWriter)
-		return streamWriter
+		---@class StreamWriter
+		---@field WriteLine fun(_:string)
+		---@field Write fun(_:string)
+		---@field Flush fun()
+		local streamWriterWrapper = {
+			_filename = filename,
+			---@type System.IO.StreamWriter
+			_stream = streamWriter,
+		}
+
+		function streamWriterWrapper.Close()
+			openedStreams[streamWriterWrapper._filename] = nil
+			streamWriterWrapper._stream.Close()
+		end
+		function streamWriterWrapper.Dispose()
+			streamWriterWrapper.Close()
+		end
+
+		setmetatable(streamWriterWrapper, { __index = streamWriter })
+
+		openedStreams[filename] = streamWriterWrapper
+
+		return streamWriterWrapper
 	end
 
 	Hook.Add("stop", function()
-		for _, logger in ipairs(createdLoggers) do
-			logger.Close()
+		for _, stream in pairs(openedStreams) do
+			stream.Close()
 		end
 	end)
 end
