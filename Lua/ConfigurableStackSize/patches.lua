@@ -11,7 +11,11 @@ local Rollback = {
 	itemContainerComponents = {},
 }
 
-local logger = utils.newLogger("patch.log")
+--- band aid fix
+--- disable for mp clients
+if not (Game.IsMultiplayer and CLIENT) then
+	local logger = utils.newLogger("patch.log")
+end
 
 function Rollback:storeItemPrefabStackSize(item_prefab)
 	---@class StackSizeState

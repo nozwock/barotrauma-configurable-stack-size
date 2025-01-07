@@ -33,4 +33,6 @@ elseif CLIENT and Game.IsMultiplayer then
 		runClientPatches(Config.tryLoadFromString(serializedConfig))
 	end)
 	network.client.requestReceiveConfig()
+else
+	error("Should be unreachable!")
 end
