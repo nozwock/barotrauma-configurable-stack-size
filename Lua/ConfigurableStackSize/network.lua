@@ -1,8 +1,9 @@
+local state = require("ConfigurableStackSize.state")
 local mod = {}
 
 ---@param msgId string
 local function getMessage(msgId)
-	return "ConfigurableStackSize" .. "." .. msgId
+	return state.modName .. "." .. msgId
 end
 
 ---@enum Message

@@ -1,5 +1,6 @@
 require("ConfigurableStackSize.ext")
 local utils = require("ConfigurableStackSize.utils")
+local state = require("ConfigurableStackSize.state")
 
 local mod = {}
 
@@ -187,9 +188,16 @@ function Config.tryFrom(cfg_data)
 	return Config.new(cfg_data)
 end
 
+---@return string
+function Config.getModConfigDir()
+	return state.configDir .. "/" .. state.modName
+end
+
+File.CreateDirectory(Config.getModConfigDir())
+
 ---@param filename? string
 function Config.getFilePath(filename)
-	return modPath .. "/" .. (filename or Config.filename)
+	return Config.getModConfigDir() .. "/" .. (filename or Config.filename)
 end
 
 ---@param filename? string
