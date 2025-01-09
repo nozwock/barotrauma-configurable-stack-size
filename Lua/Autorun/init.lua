@@ -4,11 +4,9 @@ local state = require("ConfigurableStackSize.state") -- Shared state via require
 local config = require("ConfigurableStackSize.config")
 local patches = require("ConfigurableStackSize.patches")
 local network = require("ConfigurableStackSize.network")
+local utils = require("ConfigurableStackSize.utils")
 
 local Config = config.Config
-
--- todo: look into whether the config files will be downloaded by the client too or not, and if so
--- figure out how to exclude them
 
 ---@param cfg Config
 local function runClientPatches(cfg)
@@ -16,14 +14,26 @@ local function runClientPatches(cfg)
 	patches.runItemPrefabsPatch(cfg)
 end
 
+local logFilename = state.modName .. ".log"
+
 if Game.IsSingleplayer then
 	local cfg = Config.tryLoadFromDiskOrDefault("singleplayer_config.json")
+
 	state.logging = cfg.data.logging
+	if state.logging then
+		utils.logger:openSink(logFilename)
+	end
+
 	patches.runBypassMaxStackSizeLimit()
 	runClientPatches(cfg)
 elseif SERVER then
 	local cfg = Config.tryLoadFromDiskOrDefault("multiplayer_config.json")
+
 	state.logging = cfg.data.logging
+	if state.logging then
+		utils.logger:openSink(logFilename)
+	end
+
 	network.server.setSendConfigHandler(function()
 		return cfg
 	end)

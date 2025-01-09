@@ -10,10 +10,6 @@ local Rollback = {
 }
 
 local logger = utils.logger
---- To avoid host trying to open a file already opened by the non-dedicated server
-if not (Game.IsMultiplayer and CLIENT) then
-	logger:openSink(state.modName .. ".log")
-end
 
 function Rollback:storeItemPrefabStackSize(item_prefab)
 	---@class StackSizeState
