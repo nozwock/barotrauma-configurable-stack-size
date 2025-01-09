@@ -1,6 +1,5 @@
+local state = require("ConfigurableStackSize.state")
 local utils = {}
-
-local modPath = ...
 
 ---@class Set
 local Set = {
@@ -114,66 +113,98 @@ function utils.iterContainsAny(iter, list)
 	return false
 end
 
-do
-	-- LuaUserData.MakeMethodAccessible(Descriptors["System.IO.File"], "Create")
-	LuaUserData.RegisterType("System.IO.FileStream")
-	LuaUserData.RegisterType("System.IO.BufferedStream")
-	LuaUserData.RegisterType("System.IO.StreamWriter")
-	local BufferedStream = LuaUserData.CreateStatic("System.IO.BufferedStream")
-	local StreamWriter = LuaUserData.CreateStatic("System.IO.StreamWriter")
+local logger = {
+	---@type file*?
+	sink = nil,
+}
 
-	---@type table<string, StreamWriter>
-	local openedStreams = {}
-
-	---@class System.IO.StreamWriter
-	---@field WriteLine fun(_:string)
-	---@field Write fun(_:string)
-	---@field Flush fun()
-	---@field Close fun()
-
-	---@param filename string
-	---@return StreamWriter
-	function utils.getPersistentFileStream(filename)
-		if openedStreams[filename] then
-			return openedStreams[filename]
-		end
-
-		-- todo: Create or something instead of OpenWrite
-		local fileStream = File.OpenWrite(modPath .. "/" .. filename)
-		local streamWriter = StreamWriter(BufferedStream(fileStream))
-
-		---@class StreamWriter
-		---@field WriteLine fun(_:string)
-		---@field Write fun(_:string)
-		---@field Flush fun()
-		local streamWriterWrapper = {
-			_filename = filename,
-			---@type System.IO.StreamWriter
-			_stream = streamWriter,
-		}
-
-		function streamWriterWrapper.Close()
-			openedStreams[streamWriterWrapper._filename] = nil
-			streamWriterWrapper._stream.Close()
-		end
-		function streamWriterWrapper.Dispose()
-			streamWriterWrapper.Close()
-		end
-
-		setmetatable(streamWriterWrapper, { __index = streamWriter })
-
-		openedStreams[filename] = streamWriterWrapper
-
-		return streamWriterWrapper
+---@param filename string
+---@param dir? string
+function logger:openSink(filename, dir)
+	if self.sink then
+		self.sink:close()
+		self.sink = nil
 	end
 
-	Hook.Add("stop", function()
-		for _, stream in pairs(openedStreams) do
-			stream.Close()
+	if not dir then
+		dir = state.modPath
+	end
+
+	local file, errmsg = io.open(dir .. "/" .. filename, "w")
+	if errmsg then
+		self:warn(errmsg)
+	end
+
+	self.sink = file
+	if self.sink then
+		self.sink:setvbuf("line")
+	end
+
+	-- Assuming that file* will be closed by itself when lua ends
+end
+
+function logger:flush()
+	if self.sink then
+		self.sink:flush()
+	end
+end
+
+---@param msg string
+---@param to_console? boolean
+---@param console_log fun(msg: string)
+---@param file_log fun(msg: string)
+local function _log(msg, to_console, console_log, file_log)
+	to_console = to_console == nil and true or to_console
+	if to_console or not logger.sink then
+		console_log(msg)
+	else
+		if not state.logging then
+			return
 		end
-	end)
+
+		file_log(msg)
+	end
+end
+
+---@param msg string
+local function _logToFile(msg)
+	if logger.sink then
+		logger.sink:write(string.gsub(msg, "%s$", "") .. "\n")
+	end
+end
+
+---@param msg string
+---@param to_console? boolean
+local function _getLogMsg(msg, to_console)
+	to_console = to_console == nil and true or to_console
+	return to_console and string.format("[%s] %s", state.modName, msg) or msg
+end
+
+---@param msg string
+---@param to_console? boolean
+function logger:log(msg, to_console)
+	_log(_getLogMsg(msg, to_console), to_console, function(msg_)
+		state.static.DebugConsole.Log(msg_)
+	end, _logToFile)
+end
+
+---@param msg string
+---@param to_console? boolean
+function logger:warn(msg, to_console)
+	_log(_getLogMsg(msg, to_console), to_console, function(msg_)
+		state.static.DebugConsole.LogError(msg_, Color.Yellow --[[@as any]])
+	end, _logToFile)
+end
+
+---@param msg string
+---@param to_console? boolean
+function logger:error(msg, to_console)
+	_log(_getLogMsg(msg, to_console), to_console, function(msg_)
+		state.static.DebugConsole.LogError(msg_)
+	end, _logToFile)
 end
 
 utils.Set = Set
+utils.logger = logger
 
 return utils

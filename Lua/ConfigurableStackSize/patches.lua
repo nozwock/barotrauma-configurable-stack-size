@@ -11,11 +11,10 @@ local Rollback = {
 	itemContainerComponents = {},
 }
 
---- Disable for mp clients
+local logger = utils.logger
 --- To avoid host trying to open a file already opened by the non-dedicated server
-local logger
 if not (Game.IsMultiplayer and CLIENT) then
-	logger = utils.getPersistentFileStream("patch.log")
+	logger:openSink(state.modName .. ".log")
 end
 
 function Rollback:storeItemPrefabStackSize(item_prefab)
@@ -105,9 +104,10 @@ end
 
 --- Taken from 'Stack Size 128x Lua.'
 --- Patches MaxStackSize of containers.
---- note: ~~The changes don't persist, so no need for a cleanup.~~ This was a lie, they do persist until the next session
---- where these values will get re-evaluated...
---- So, that means you can't do stuff like `if instance.maxStackSize < 64`, that could end up skipping stuff
+--- note: ~~The changes don't persist, so no need for a cleanup.~~
+--- This was a lie, they do persist until the next session where these values will get re-evaluated...
+---
+--- Actually... no, there seems to be really no persistence... I'm seeing things
 ---
 --- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container.
 ---@param containerSizes ContainerOptions
@@ -119,16 +119,23 @@ function mod.runContainersPatch(containerSizes)
 	}, function(instance, ptable)
 		---@cast instance Barotrauma.Items.Components.ItemContainer
 
+		local id = tostring(instance.Item.Prefab.Identifier)
 		-- Incase the user sets maxStackSize to 1 for one or more container group.
-		if instance.maxStackSize > 1 or Rollback.itemContainerComponents[tostring(instance.Item.Prefab.Identifier)] then
+		if instance.maxStackSize > 1 or Rollback.itemContainerComponents[id] then
 			local item = instance.Item
 
+			-- This can be removed I think... no need for rollback or whatever
 			Rollback:storeInitialItemContainerCompStackSize(instance, ptable["value"])
 
+			local modified = false
+
+			--- Storage Container [toolbox] is seemingly not being affected
 			if item.HasTag("mobilecontainer") or item.HasTag("scooter") then
 				instance.maxStackSize = containerSizes.mobileContainerCapacity
+				modified = true
 			elseif item.HasTag("crate") then
 				instance.maxStackSize = containerSizes.crateContainerCapacity
+				modified = true
 			elseif
 				item.HasTag("container")
 				-- note There seems to be a "Cabinets" item (id: opdeco_cabinetsdorm) that has no tag, which leads to it not being patched with correct group
@@ -136,12 +143,14 @@ function mod.runContainersPatch(containerSizes)
 				or utils.iterContains(table.values({ "opdeco_cabinetsdorm" }), tostring(item.Prefab.Identifier))
 			then
 				instance.maxStackSize = containerSizes.stationaryContainerCapacity
+				modified = true
 			elseif ptable["value"] >= 64 then
 				instance.maxStackSize = containerSizes.maxStackSize
+				modified = true
 			end
 			-- Don't catch all here using `else`, as that would include even container slots of weapons, etc. which is used to hold ammo
 
-			if state.logging then
+			if state.logging and modified then
 				local log = {
 					patchType = "container",
 					name = tostring(item.Prefab.Name),
@@ -150,14 +159,11 @@ function mod.runContainersPatch(containerSizes)
 					maxStackSize = {
 						before = ptable["value"],
 						after = instance.maxStackSize,
+						initial = Rollback.itemContainerComponents[id],
 					},
 				}
-				-- note: won't log all containers because the changes persist, and I'm not rolling back the values
-				-- before modifying them again
-				if log.maxStackSize.before ~= log.maxStackSize.after then
-					logger.WriteLine(json.serialize(log))
-					logger.Flush()
-				end
+				logger:log(json.serialize(log), false)
+				logger:flush()
 			end
 		end
 	end, Hook.HookMethodType.After)
@@ -303,7 +309,7 @@ function mod.runItemPrefabsPatch(cfg)
 					log.MaxStackSize.after = prefab.MaxStackSize
 					log.MaxStackSizeCharacterInventory.after = prefab.MaxStackSizeCharacterInventory
 					log.MaxStackSizeHoldableOrWearableInventory.after = prefab.MaxStackSizeHoldableOrWearableInventory
-					logger.WriteLine(json.serialize(log))
+					logger:log(json.serialize(log), false)
 				end
 			end
 
@@ -312,7 +318,7 @@ function mod.runItemPrefabsPatch(cfg)
 	end
 
 	if state.logging then
-		logger.Flush()
+		logger:flush()
 	end
 
 	Hook.Add("stop", "ConfigurableStackSize.stop", function()
