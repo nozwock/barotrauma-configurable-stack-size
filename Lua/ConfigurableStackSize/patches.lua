@@ -7,8 +7,6 @@ local mod = {}
 local Rollback = {
 	---@type table<string, StackSizeState>
 	itemPrefabs = {},
-	---@type table<string, integer>
-	itemContainerComponents = {},
 }
 
 local logger = utils.logger
@@ -33,15 +31,6 @@ function Rollback:rollbackItemPrefabStackSizes()
 		item_prefab.set_MaxStackSize(state_.MaxStackSize)
 		item_prefab.set_MaxStackSizeCharacterInventory(state_.MaxStackSizeCharacterInventory)
 		item_prefab.set_MaxStackSizeHoldableOrWearableInventory(state_.MaxStackSizeHoldableOrWearableInventory)
-	end
-end
----@param component Barotrauma.Items.Components.ItemContainer
----@param stack_size integer
-function Rollback:storeInitialItemContainerCompStackSize(component, stack_size)
-	local id = tostring(component.Item.Prefab.Identifier)
-
-	if not self.itemContainerComponents[id] then
-		self.itemContainerComponents[id] = stack_size
 	end
 end
 
@@ -104,10 +93,7 @@ end
 
 --- Taken from 'Stack Size 128x Lua.'
 --- Patches MaxStackSize of containers.
---- note: ~~The changes don't persist, so no need for a cleanup.~~
---- This was a lie, they do persist until the next session where these values will get re-evaluated...
----
---- Actually... no, there seems to be really no persistence... I'm seeing things
+--- note: The changes don't persist, so no need for a cleanup.
 ---
 --- Containers have their own MaxStackSize which dictates the max allowed stack for items within that container.
 ---@param containerSizes ContainerOptions
@@ -119,13 +105,8 @@ function mod.runContainersPatch(containerSizes)
 	}, function(instance, ptable)
 		---@cast instance Barotrauma.Items.Components.ItemContainer
 
-		local id = tostring(instance.Item.Prefab.Identifier)
-		-- Incase the user sets maxStackSize to 1 for one or more container group.
-		if instance.maxStackSize > 1 or Rollback.itemContainerComponents[id] then
+		if instance.maxStackSize > 1 then
 			local item = instance.Item
-
-			-- This can be removed I think... no need for rollback or whatever
-			Rollback:storeInitialItemContainerCompStackSize(instance, ptable["value"])
 
 			local modified = false
 
@@ -159,7 +140,6 @@ function mod.runContainersPatch(containerSizes)
 					maxStackSize = {
 						before = ptable["value"],
 						after = instance.maxStackSize,
-						initial = Rollback.itemContainerComponents[id],
 					},
 				}
 				logger:log(json.serialize(log), false)
