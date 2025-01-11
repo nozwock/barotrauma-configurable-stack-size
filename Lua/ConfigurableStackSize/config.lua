@@ -80,7 +80,7 @@ local _ItemPatchMetaTable = {
 ---@return Config
 function Config.new(cfg_data, filename)
 	if not cfg_data.containerOptions then
-		cfg_data.containerOptions = table.shallowcopy(Config.data.containerOptions)
+		cfg_data.containerOptions = table.deepcopy(Config.data.containerOptions)
 	end
 
 	local cfg = {
@@ -222,7 +222,7 @@ function Config.tryLoadFromDiskOrDefault(filename)
 		end
 		return cfg
 	else
-		local cfg = Config.new(table.shallowcopy(Config.default.data), filename)
+		local cfg = Config.new(table.deepcopy(Config.default.data), filename)
 		cfg:storeToDisk()
 		return cfg
 	end
